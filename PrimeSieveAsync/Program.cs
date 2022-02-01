@@ -7,10 +7,8 @@ namespace MyApp // Note: actual namespace depends on the project name.
     {
         int _size;
         bool[] _notPrimeTable;
-
-        //SemaphoreSlim semaphoreSlim = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
-        SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-
+        int counterThread = 0;
+        int interval = Environment.ProcessorCount;
 
         public PrimeSieve(int size)
         {
@@ -21,33 +19,39 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
         public void Sieve(int x)
         {
-            //Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-            int tmp = 2*x;
+            int tmp = 2 * x;
             while (tmp < _size)
             {
                 _notPrimeTable[tmp] = true;
                 tmp += x;
-            }
+            } 
         }
 
-        public async Task SieveAsync(int x)
+        public void SetInterval(int tid)
         {
-            semaphoreSlim.Wait();
-            await Task.Run(() => Sieve(x));
-            semaphoreSlim.Release();
+            Console.WriteLine($"thread id:{tid}");
+            int t = tid;
+            while (t < _size)
+            {
+                if (_notPrimeTable[t] == false)
+                {
+                    Sieve(t);
+                }
+
+                t += interval;
+            }
         }
 
         public void Run()
         {
-            
-            Sieve(2);
-            for (int i = 3; i < _size; i++)
+            List<Task> jobs = new List<Task>();
+            for (int i = 2; i < Environment.ProcessorCount; i++)
             {
-                if (_notPrimeTable[i]==false)
-                {
-                    Sieve(i);
-                }
+                int tmp = i;
+
+                jobs.Add(Task.Run(() => SetInterval(tmp)));
             }
+            Task.WaitAll(jobs.ToArray());
         }
     }
 
